@@ -28,3 +28,13 @@ export interface TravelDay {
   };
   activities: Activity[];
 }
+
+export interface Trip {
+  id: string;
+  title: string;
+  destination: string;
+  startDate: string;
+  endDate: string;
+  imageUrl?: string;
+  partner?: string;
+}
