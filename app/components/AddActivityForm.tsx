@@ -1,246 +1,226 @@
 "use client";
 
+import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useEffect } from "react";
-import { Activity, ActivityType } from "@/app/types/trip";
+import { toast } from "sonner";
+import { ActivityType } from "@/app/types/trip";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
-interface ActivityFormData extends Omit<Activity, "date"> {
-  date: string;
-  endTime?: string;
-  confirmationNumber?: string;
+const activitySchema = z.object({
+  title: z.string().min(2, "Title must be at least 2 characters"),
+  type: z.nativeEnum(ActivityType),
+  date: z.string(),
+  time: z.string(),
+  location: z.string().min(2, "Location must be at least 2 characters"),
+  notes: z.string().optional(),
+});
+
+type ActivityFormData = z.infer<typeof activitySchema>;
+
+interface PlaceRecommendation {
+  name: string;
+  address: string;
+  rating?: number;
+  types: string[];
 }
 
 interface AddActivityFormProps {
-  onClose: () => void;
-  onSubmit: (activity: Activity) => void;
-  activityType?: ActivityType;
-  defaultDate?: string;
+  tripId: string;
+  destination: string;
+  onActivityAdded: () => void;
 }
 
 export function AddActivityForm({
-  onClose,
-  onSubmit,
-  activityType = ActivityType.ACTIVITY,
-  defaultDate = "",
+  tripId,
+  destination,
+  onActivityAdded,
 }: AddActivityFormProps) {
-  const [formData, setFormData] = useState<ActivityFormData>({
-    title: "",
-    type: activityType,
-    date: defaultDate,
-    time: "",
-    endTime: "", // Add empty string initialization
-    location: "",
-    notes: "",
-    confirmationNumber: "", // Add empty string initialization
+  const [isLoading, setIsLoading] = useState(false);
+  const [recommendations, setRecommendations] = useState<PlaceRecommendation[]>(
+    []
+  );
+  const supabase = createClientComponentClient();
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<ActivityFormData>({
+    resolver: zodResolver(activitySchema),
   });
 
-  // Set default values based on activity type
-  useEffect(() => {
-    const defaults: Partial<ActivityFormData> = {
-      type: activityType,
-      date: defaultDate || new Date().toISOString().split("T")[0],
-      endTime: "10:00", // Default check-out time
-      time: "15:00", // Default check-in time
-    };
+  const fetchPlaceRecommendations = async () => {
+    try {
+      const response = await fetch("/api/places/recommendations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ destination }),
+      });
 
-    switch (activityType) {
-      case ActivityType.HOTEL:
-        defaults.title = "Hotel Accommodation";
-        defaults.notes = "Standard room booking";
-        break;
-      case ActivityType.RESTAURANT:
-        defaults.title = "Dinner Reservation";
-        defaults.time = "19:00";
-        break;
-      case ActivityType.FLIGHT:
-        defaults.title = "Flight Booking";
-        defaults.notes = "Economy class";
-        break;
+      if (!response.ok) throw new Error("Failed to fetch recommendations");
+
+      const data = await response.json();
+      setRecommendations(data.places);
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
+      toast.error("Failed to load place recommendations");
     }
-
-    setFormData((prev) => ({
-      ...prev,
-      ...defaults,
-    }));
-  }, [activityType, defaultDate]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({
-      title: formData.title,
-      date: formData.date,
-      time: formData.time,
-      location: formData.location,
-      notes: formData.notes,
-      type: formData.type,
-    });
-    onClose();
   };
 
-  const getFormTitle = () => {
-    switch (activityType) {
-      case ActivityType.HOTEL:
-        return "Add Hotel Accommodation";
-      case ActivityType.RESTAURANT:
-        return "Add Restaurant Reservation";
-      case ActivityType.FLIGHT:
-        return "Add Flight Details";
-      default:
-        return "Add New Activity";
+  const onSubmit = async (data: ActivityFormData) => {
+    try {
+      setIsLoading(true);
+
+      const { error } = await supabase.from("activities").insert({
+        tripId,
+        ...data,
+      });
+
+      if (error) throw error;
+
+      toast.success("Activity added successfully!");
+      onActivityAdded();
+    } catch (error) {
+      console.error("Error adding activity:", error);
+      toast.error("Failed to add activity");
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleRecommendationSelect = (place: PlaceRecommendation) => {
+    setValue("title", place.name);
+    setValue("location", place.address);
+    setValue("type", ActivityType.SIGHT);
+    setValue("notes", `Rating: ${place.rating}/5`);
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-4 bg-card p-6 rounded-lg shadow"
-    >
-      <h2 className="text-2xl font-semibold mb-4">{getFormTitle()}</h2>
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <Button
+          variant="secondary"
+          onClick={fetchPlaceRecommendations}
+          className="w-full"
+        >
+          Get Popular Attractions
+        </Button>
 
-      <div>
-        <label htmlFor="title" className="block text-sm font-medium mb-1">
-          {activityType === ActivityType.HOTEL ? "Hotel Name" : "Title"}
-        </label>
-        <Input
-          id="title"
-          value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          required
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="date" className="block text-sm font-medium mb-1">
-            Date
-          </label>
-          <Input
-            id="date"
-            type="date"
-            value={formData.date}
-            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            required
-          />
-        </div>
-
-        {activityType === ActivityType.HOTEL ? (
-          <>
-            <div>
-              <label
-                htmlFor="check-in"
-                className="block text-sm font-medium mb-1"
+        {recommendations.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {recommendations.map((place, index) => (
+              <Card
+                key={index}
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => handleRecommendationSelect(place)}
               >
-                Check-in Time
-              </label>
-              <Input
-                id="check-in"
-                type="time"
-                value={formData.time}
-                onChange={(e) =>
-                  setFormData({ ...formData, time: e.target.value })
-                }
-                required
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="check-out"
-                className="block text-sm font-medium mb-1"
-              >
-                Check-out Time
-              </label>
-              <Input
-                id="check-out"
-                type="time"
-                value={formData.endTime}
-                onChange={(e) =>
-                  setFormData({ ...formData, endTime: e.target.value })
-                }
-                required
-              />
-            </div>
-          </>
-        ) : (
-          <div>
-            <label htmlFor="time" className="block text-sm font-medium mb-1">
-              {activityType === ActivityType.FLIGHT ? "Departure Time" : "Time"}
-            </label>
-            <Input
-              id="time"
-              type="time"
-              value={formData.time}
-              onChange={(e) =>
-                setFormData({ ...formData, time: e.target.value })
-              }
-              required
-            />
+                <CardContent className="p-4">
+                  <h3 className="font-semibold">{place.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {place.address}
+                  </p>
+                  {place.rating && (
+                    <p className="text-sm">Rating: {place.rating}/5</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
       </div>
 
-      <div>
-        <label htmlFor="location" className="block text-sm font-medium mb-1">
-          {activityType === ActivityType.HOTEL
-            ? "Hotel Address"
-            : activityType === ActivityType.FLIGHT
-            ? "Flight Number"
-            : "Location"}
-        </label>
-        <Input
-          id="location"
-          value={formData.location}
-          onChange={(e) =>
-            setFormData({ ...formData, location: e.target.value })
-          }
-          required
-        />
-      </div>
-
-      {activityType === ActivityType.HOTEL && (
-        <div>
-          <label
-            htmlFor="confirmation"
-            className="block text-sm font-medium mb-1"
-          >
-            Confirmation Number
-          </label>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="title">Activity Title</Label>
           <Input
-            id="confirmation"
-            value={formData.confirmationNumber || ""}
-            onChange={(e) =>
-              setFormData({ ...formData, confirmationNumber: e.target.value })
-            }
+            id="title"
+            placeholder="Visit Eiffel Tower"
+            {...register("title")}
+          />
+          {errors.title && (
+            <p className="text-sm text-red-500">{errors.title.message}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="type">Activity Type</Label>
+          <Select
+            onValueChange={(value) => setValue("type", value as ActivityType)}
+            defaultValue={ActivityType.SIGHT}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.values(ActivityType).map((type) => (
+                <SelectItem key={type} value={type}>
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="date">Date</Label>
+            <Input id="date" type="date" {...register("date")} />
+            {errors.date && (
+              <p className="text-sm text-red-500">{errors.date.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="time">Time</Label>
+            <Input id="time" type="time" {...register("time")} />
+            {errors.time && (
+              <p className="text-sm text-red-500">{errors.time.message}</p>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="location">Location</Label>
+          <Input
+            id="location"
+            placeholder="Address or place name"
+            {...register("location")}
+          />
+          {errors.location && (
+            <p className="text-sm text-red-500">{errors.location.message}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="notes">Notes</Label>
+          <Textarea
+            id="notes"
+            placeholder="Any additional details..."
+            {...register("notes")}
           />
         </div>
-      )}
 
-      <div>
-        <label htmlFor="notes" className="block text-sm font-medium mb-1">
-          {activityType === ActivityType.HOTEL ? "Special Requests" : "Notes"}
-        </label>
-        <Textarea
-          id="notes"
-          value={formData.notes}
-          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-          rows={3}
-          placeholder={
-            activityType === ActivityType.HOTEL
-              ? "Enter any special room requests..."
-              : "Add additional notes..."
-          }
-        />
-      </div>
-
-      <div className="flex justify-end space-x-2">
-        <Button type="button" variant="outline" onClick={onClose}>
-          Cancel
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? "Adding Activity..." : "Add Activity"}
         </Button>
-        <Button type="submit">
-          {activityType === ActivityType.HOTEL ? "Save Hotel" : "Save Activity"}
-        </Button>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 }

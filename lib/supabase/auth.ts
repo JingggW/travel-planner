@@ -17,13 +17,23 @@ export const handleSignUp = async (email: string, password: string) => {
 
 // Email/password login
 export const handleSignIn = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  return error
-    ? handleAuthError(error)
-    : { user: data.user, session: data.session };
+  try {
+    console.log("Attempting login with:", email); // Pre-request log
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    console.log("Login response:", { data, error }); // Post-request log
+
+    return error
+      ? handleAuthError(error)
+      : { user: data.user, session: data.session };
+  } catch (e) {
+    console.error("Login error:", e); // Error log
+    return { error: "An unexpected error occurred" };
+  }
 };
 
 // Social login (redirect-based OAuth)
@@ -48,4 +58,10 @@ export const getUserSession = async (): Promise<{
   }
 
   return { user: data.session?.user || null, session: data.session };
+};
+
+// Sign out
+export const handleSignOut = async () => {
+  const { error } = await supabase.auth.signOut();
+  return error ? handleAuthError(error) : { success: true };
 };

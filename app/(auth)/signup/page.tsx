@@ -16,15 +16,28 @@ export default function SignUpPage() {
     if ("error" in result) {
       setError(result.error);
     } else {
-      // Redirect to dashboard after successful signup
-      router.push("/dashboard");
+      // Redirect to onboarding after successful signup
+      router.push("/onboarding");
     }
+  };
+
+  const handleSocialSignup = async (provider: "google" | "github") => {
+    const result = await handleSocialLogin(provider);
+    if ("error" in result) {
+      setError(result.error);
+      return { error: result.error };
+    } else if (result.url) {
+      // Social login will redirect to /auth/callback, which should then redirect to onboarding
+      window.location.href = result.url;
+      return { url: result.url };
+    }
+    return {};
   };
 
   return (
     <div className="flex flex-col items-center space-y-6">
       <AuthForm type="signup" onSubmit={handleSubmit} error={error} />
-      <SocialButtons onSocialLogin={handleSocialLogin} />
+      <SocialButtons onSocialLogin={handleSocialSignup} />
     </div>
   );
 }
