@@ -3,28 +3,45 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AddTripCard } from "@/app/components/AddTripCard";
 import { TripCard } from "@/app/components/TripCard";
+import { DatabaseTrip } from "@/app/types/trip";
 
 export default async function TripsPage() {
-  const supabase = createServerComponentClient({ cookies });
+  const cookieStore = cookies();
+  const supabase = createServerComponentClient({ cookies: () => cookieStore });
 
-  // Check authentication
+  // Get authenticated user using getUser for better security
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session) {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    console.error("Auth error:", userError);
     redirect("/login");
   }
 
   // Fetch user's trips
-  const { data: trips, error } = await supabase
+  const { data: dbTrips, error } = await supabase
     .from("trips")
-    .select("id, title, destination, startDate, endDate, imageUrl, partnerId")
-    .or(`ownerId.eq.${session.user.id},partnerId.eq.${session.user.id}`)
-    .order("startDate", { ascending: true });
+    .select(
+      "id, title, destination, start_date, end_date, image_url, partner_id"
+    )
+    .or("owner_id.eq." + user.id + ",partner_id.eq." + user.id)
+    .order("start_date", { ascending: true });
 
   if (error) {
     console.error("Error fetching trips:", error);
   }
+
+  const trips = (dbTrips as DatabaseTrip[])?.map((trip) => ({
+    id: trip.id,
+    title: trip.title,
+    destination: trip.destination,
+    startDate: new Date(trip.start_date),
+    endDate: new Date(trip.end_date),
+    imageUrl: trip.image_url,
+    partnerId: trip.partner_id,
+  }));
 
   return (
     <div className="container py-8">
@@ -35,16 +52,7 @@ export default async function TripsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <AddTripCard />
         {trips?.map((trip) => (
-          <TripCard
-            key={trip.id}
-            id={trip.id}
-            title={trip.title}
-            destination={trip.destination}
-            startDate={trip.startDate}
-            endDate={trip.endDate}
-            imageUrl={trip.imageUrl}
-            partner={trip.partnerId}
-          />
+          <TripCard key={trip.id} {...trip} />
         ))}
       </div>
     </div>

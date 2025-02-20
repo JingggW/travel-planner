@@ -33,8 +33,26 @@ export interface Trip {
   id: string;
   title: string;
   destination: string;
-  startDate: string;
-  endDate: string;
-  imageUrl?: string;
-  partner?: string;
+  startDate: Date;
+  endDate: Date;
+  ownerId: string;
+  partnerId?: string | null;
+  status: string;
+  imageUrl?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface DatabaseTrip {
+  id: string;
+  title: string;
+  destination: string;
+  start_date: string;
+  end_date: string;
+  owner_id: string;
+  partner_id?: string | null;
+  status: string;
+  image_url?: string | null;
+  created_at: string;
+  updated_at: string;
 }

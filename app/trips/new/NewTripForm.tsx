@@ -1,175 +1,156 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus } from "lucide-react";
-import Image from "next/image";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { toast } from "sonner";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
-const DEFAULT_IMAGE = "/images/trip-placeholder.jpg";
+interface NewTripFormProps {
+  userId: string;
+}
 
-export function NewTripForm() {
-  const router = useRouter();
-  const [formData, setFormData] = useState({
-    title: "",
-    destination: "",
-    startDate: "",
-    endDate: "",
-    partner: "",
-    imageUrl: DEFAULT_IMAGE,
+const tripSchema = z
+  .object({
+    title: z.string().min(3, "Title must be at least 3 characters"),
+    destination: z.string().min(2, "Destination must be at least 2 characters"),
+    startDate: z.string().refine((date) => new Date(date) >= new Date(), {
+      message: "Start date must be in the future",
+    }),
+    endDate: z.string(),
+  })
+  .refine((data) => new Date(data.endDate) >= new Date(data.startDate), {
+    message: "End date must be after start date",
+    path: ["endDate"],
   });
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: API call to create trip
-    console.log("Creating trip:", formData);
-    router.push("/dashboard");
-  };
+type TripFormData = z.infer<typeof tripSchema>;
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
-      // Create a preview URL
-      const imageUrl = URL.createObjectURL(file);
-      setFormData({ ...formData, imageUrl });
+export function NewTripForm({ userId }: NewTripFormProps) {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const supabase = createClientComponentClient();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<TripFormData>({
+    resolver: zodResolver(tripSchema),
+  });
+
+  const onSubmit = async (data: TripFormData) => {
+    try {
+      setIsLoading(true);
+      console.log("Creating trip with data:", {
+        ...data,
+        ownerId: userId,
+        startDate: new Date(data.startDate).toISOString(),
+        endDate: new Date(data.endDate).toISOString(),
+      });
+
+      // Create new trip
+      const { data: trip, error } = await supabase
+        .from("trips")
+        .insert({
+          title: data.title,
+          destination: data.destination,
+          start_date: new Date(data.startDate).toISOString(),
+          end_date: new Date(data.endDate).toISOString(),
+          owner_id: userId,
+          status: "PLANNING",
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
+
+      console.log("Trip created successfully:", trip);
+      toast.success("Trip created successfully!");
+      // Redirect to the new trip's detail page
+      router.push(`/trips/${trip.id}`);
+    } catch (error) {
+      console.error("Error creating trip:", error);
+      toast.error("Failed to create trip. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Create New Trip</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium mb-1">
-              Trip Title
-            </label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
-              required
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="destination"
-              className="block text-sm font-medium mb-1"
-            >
-              Destination
-            </label>
-            <Input
-              id="destination"
-              value={formData.destination}
-              onChange={(e) =>
-                setFormData({ ...formData, destination: e.target.value })
-              }
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="partner" className="block text-sm font-medium mb-1">
-              Travel Partner
-            </label>
-            <Input
-              id="partner"
-              placeholder="Optional"
-              value={formData.partner}
-              onChange={(e) =>
-                setFormData({ ...formData, partner: e.target.value })
-              }
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="startDate"
-                className="block text-sm font-medium mb-1"
-              >
-                Start Date
-              </label>
+    <div className="container max-w-2xl py-8">
+      <Card>
+        <CardHeader>
+          <h1 className="text-3xl font-bold">Create New Trip</h1>
+          <p className="text-muted-foreground">
+            Plan your next adventure by filling out the details below.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Trip Title</Label>
               <Input
-                id="startDate"
-                type="date"
-                value={formData.startDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, startDate: e.target.value })
-                }
-                required
+                id="title"
+                placeholder="Summer Vacation 2024"
+                {...register("title")}
               />
-            </div>
-            <div>
-              <label
-                htmlFor="endDate"
-                className="block text-sm font-medium mb-1"
-              >
-                End Date
-              </label>
-              <Input
-                id="endDate"
-                type="date"
-                value={formData.endDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, endDate: e.target.value })
-                }
-                required
-              />
-            </div>
-          </div>
-          <div>
-            <label htmlFor="image" className="block text-sm font-medium mb-1">
-              Cover Image
-            </label>
-            <div className="mt-1 flex items-center gap-4">
-              <Input
-                id="image"
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-              <label
-                htmlFor="image"
-                className="flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-gray-50 cursor-pointer"
-              >
-                <ImagePlus className="h-5 w-5" />
-                <span>Choose Image</span>
-              </label>
-              {selectedImage && (
-                <span className="text-sm text-muted-foreground">
-                  {selectedImage.name}
-                </span>
+              {errors.title && (
+                <p className="text-sm text-red-500">{errors.title.message}</p>
               )}
             </div>
-            <div className="mt-2 relative w-full h-32 rounded-lg overflow-hidden">
-              <Image
-                src={formData.imageUrl}
-                alt="Trip cover"
-                fill
-                className="object-cover"
+
+            <div className="space-y-2">
+              <Label htmlFor="destination">Destination</Label>
+              <Input
+                id="destination"
+                placeholder="Paris, France"
+                {...register("destination")}
               />
+              {errors.destination && (
+                <p className="text-sm text-red-500">
+                  {errors.destination.message}
+                </p>
+              )}
             </div>
-          </div>
-          <div className="flex justify-end gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push("/dashboard")}
-            >
-              Cancel
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input id="startDate" type="date" {...register("startDate")} />
+                {errors.startDate && (
+                  <p className="text-sm text-red-500">
+                    {errors.startDate.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date</Label>
+                <Input id="endDate" type="date" {...register("endDate")} />
+                {errors.endDate && (
+                  <p className="text-sm text-red-500">
+                    {errors.endDate.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Creating Trip..." : "Create Trip"}
             </Button>
-            <Button type="submit">Create Trip</Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

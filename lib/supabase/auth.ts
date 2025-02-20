@@ -25,11 +25,27 @@ export const handleSignIn = async (email: string, password: string) => {
       password,
     });
 
-    console.log("Login response:", { data, error }); // Post-request log
+    console.log("Login response:", {
+      success: !!data.session,
+      user: data.user?.id,
+      error: error?.message,
+      session: {
+        access_token: data.session?.access_token ? "present" : "missing",
+        expires_at: data.session?.expires_at,
+      },
+    });
 
-    return error
-      ? handleAuthError(error)
-      : { user: data.user, session: data.session };
+    if (error) {
+      console.error("Login error:", error.message);
+      return handleAuthError(error);
+    }
+
+    if (!data.session) {
+      console.error("No session after successful login");
+      return { error: "Failed to create session" };
+    }
+
+    return { user: data.user, session: data.session };
   } catch (e) {
     console.error("Login error:", e); // Error log
     return { error: "An unexpected error occurred" };

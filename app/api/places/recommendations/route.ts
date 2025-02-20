@@ -22,7 +22,9 @@ export async function POST(request: Request) {
     const { destination } = await request.json();
     const together = new Together({ apiKey: TOGETHER_API_KEY });
 
-    const prompt = `List 5 must-visit tourist attractions in ${destination}. For each attraction, provide:
+    console.log("Received destination:", destination);
+
+    const prompt = `List 5 must-visit tourist attractions that are specifically located in ${destination}. These must be actual attractions that exist in ${destination}. For each attraction, provide:
 1. Name
 2. A brief description
 3. Type (e.g., museum, landmark, park)
@@ -38,14 +40,14 @@ Format the response as a JSON array with the following structure:
   "bestTimeToVisit": "Best time"
 }]
 
-Only return the JSON array, no other text.`;
-
+Only return the JSON array, no other text. All attractions MUST be located in ${destination}.`;
+    console.log("Prompt:", prompt);
     const response = await together.chat.completions.create({
       messages: [
         {
           role: "system",
           content:
-            "You are a helpful travel guide that provides information in JSON format.",
+            "You are a helpful travel guide that provides information in JSON format. Always provide information ONLY about the specific city that is asked for.",
         },
         { role: "user", content: prompt },
       ],

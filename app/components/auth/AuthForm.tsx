@@ -16,9 +16,15 @@ interface AuthFormProps {
   type: "login" | "signup";
   onSubmit: (email: string, password: string) => Promise<void>;
   error?: string;
+  isLoading?: boolean;
 }
 
-export default function AuthForm({ type, onSubmit, error }: AuthFormProps) {
+export default function AuthForm({
+  type,
+  onSubmit,
+  error,
+  isLoading = false,
+}: AuthFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -49,6 +55,7 @@ export default function AuthForm({ type, onSubmit, error }: AuthFormProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={isLoading}
             />
           </div>
           <div className="space-y-2">
@@ -59,6 +66,7 @@ export default function AuthForm({ type, onSubmit, error }: AuthFormProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              disabled={isLoading}
             />
           </div>
           {error && (
@@ -66,8 +74,14 @@ export default function AuthForm({ type, onSubmit, error }: AuthFormProps) {
               {error}
             </div>
           )}
-          <Button type="submit" className="w-full">
-            {type === "login" ? "Sign In" : "Sign Up"}
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading
+              ? type === "login"
+                ? "Signing in..."
+                : "Signing up..."
+              : type === "login"
+              ? "Sign In"
+              : "Sign Up"}
           </Button>
         </form>
         <div className="mt-4 text-center text-sm">

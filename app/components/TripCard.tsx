@@ -1,12 +1,10 @@
 "use client";
 
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { formatDisplayDate } from "@/app/utils/dateUtils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Calendar, MapPin, Users } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
-import type { Trip } from "@/app/types/trip";
+import { Trip } from "@/app/types/trip";
 
-// Only the props needed for display
 type TripCardProps = Pick<
   Trip,
   | "id"
@@ -15,7 +13,7 @@ type TripCardProps = Pick<
   | "startDate"
   | "endDate"
   | "imageUrl"
-  | "partner"
+  | "partnerId"
 >;
 
 export function TripCard({
@@ -25,44 +23,48 @@ export function TripCard({
   startDate,
   endDate,
   imageUrl,
-  partner,
+  partnerId,
 }: TripCardProps) {
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
   return (
     <Link href={`/trips/${id}`}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow group">
-        {imageUrl ? (
-          <div className="h-48 overflow-hidden relative">
-            <Image
-              src={imageUrl}
-              alt={destination}
-              fill
-              className="object-cover group-hover:scale-105 transition-transform"
-            />
-          </div>
-        ) : (
-          <div className="h-48 bg-muted/50 flex items-center justify-center">
-            <span className="text-muted-foreground">No image</span>
-          </div>
-        )}
-        <CardHeader className="p-4">
-          <div className="space-y-1">
-            <h3 className="font-semibold text-xl line-clamp-1">{title}</h3>
-            <p className="text-muted-foreground line-clamp-1">{destination}</p>
-          </div>
-        </CardHeader>
-        <CardContent className="p-4 pt-0 space-y-2">
-          <div className="flex items-center text-sm text-muted-foreground">
-            <span>
-              {formatDisplayDate(startDate)} - {formatDisplayDate(endDate)}
-            </span>
-          </div>
-          {partner && (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground line-clamp-1">
-                ✈️ With {partner}
+      <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+        <div
+          className="h-48 bg-cover bg-center"
+          style={{
+            backgroundImage: `url(${
+              imageUrl || "/images/trip-placeholder.jpg"
+            })`,
+          }}
+        />
+        <CardContent className="p-4">
+          <h3 className="text-xl font-semibold mb-2">{title}</h3>
+          <div className="space-y-2 text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              <span>{destination}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              <span>
+                {formatDate(new Date(startDate))} -{" "}
+                {formatDate(new Date(endDate))}
               </span>
             </div>
-          )}
+            {partnerId && (
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span>Traveling with partner</span>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </Link>

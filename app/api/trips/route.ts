@@ -27,6 +27,7 @@ export async function POST(req: Request) {
       endDate,
       destination,
       ownerId: session.user.id,
+      status: "PLANNING",
     },
   });
 

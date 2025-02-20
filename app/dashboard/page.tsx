@@ -1,38 +1,53 @@
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { TripCard } from "@/app/components/TripCard";
 import { AddTripCard } from "@/app/components/AddTripCard";
+import { DatabaseTrip } from "@/app/types/trip";
 
-// Move the interface to a types file
-import { Trip } from "@/app/types/trip";
+export default async function DashboardPage() {
+  const supabase = createServerComponentClient({ cookies });
 
-// Mock data - move to a data file or API later
-const trips: Trip[] = [
-  {
-    id: "1",
-    title: "Paris Adventure",
-    destination: "Paris, France",
-    startDate: "2024-06-15",
-    endDate: "2024-06-22",
-    imageUrl: "/images/trip-placeholder.jpg",
-    partner: "Sarah Smith",
-  },
-  {
-    id: "2",
-    title: "Tokyo Exploration",
-    destination: "Tokyo, Japan",
-    startDate: "2024-08-10",
-    endDate: "2024-08-20",
-    imageUrl: "/images/trip-placeholder.jpg",
-    partner: "John Doe",
-  },
-];
+  // Get authenticated user using getUser for better security
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-export default function DashboardPage() {
+  if (userError || !user) {
+    console.error("Auth error:", userError);
+    redirect("/login");
+  }
+
+  // Fetch user's trips
+  const { data: dbTrips, error } = await supabase
+    .from("trips")
+    .select(
+      "id, title, destination, start_date, end_date, image_url, partner_id"
+    )
+    .or("owner_id.eq." + user.id + ",partner_id.eq." + user.id)
+    .order("start_date", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching trips:", error);
+  }
+
+  const trips = (dbTrips as DatabaseTrip[])?.map((trip) => ({
+    id: trip.id,
+    title: trip.title,
+    destination: trip.destination,
+    startDate: new Date(trip.start_date),
+    endDate: new Date(trip.end_date),
+    imageUrl: trip.image_url,
+    partnerId: trip.partner_id,
+  }));
+
   return (
     <div className="container py-10">
       <h1 className="text-3xl font-bold mb-8">My Trips</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {trips.map((trip) => (
+        {trips?.map((trip) => (
           <TripCard key={trip.id} {...trip} />
         ))}
         <AddTripCard />
