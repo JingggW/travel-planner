@@ -67,18 +67,29 @@ export default function NewTripItem({ params }: PageProps) {
 
     setLoading(true);
     try {
-      const { error } = await supabase.from("trip_items").insert([
-        {
-          ...formData,
-          trip_id: tripId,
-        },
-      ]);
+      const itemData: Partial<TripItem> = {
+        ...formData,
+        trip_id: tripId,
+        start_datetime: formData.start_datetime || undefined,
+        end_datetime: formData.end_datetime || undefined,
+      };
 
-      if (error) throw error;
+      console.log("Trip item data to be sent to Supabase:", itemData);
+
+      const { error } = await supabase.from("trip_items").insert([itemData]);
+
+      if (error) {
+        console.error("Detailed error:", error);
+        throw error;
+      }
       router.push(`/trips/${tripId}`);
     } catch (error) {
       console.error("Error creating trip item:", error);
-      alert("Error creating trip item. Please try again.");
+      if (error instanceof Error) {
+        alert(`Error creating trip item: ${error.message}`);
+      } else {
+        alert("Error creating trip item. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
