@@ -1,14 +1,17 @@
-export type Trip = {
+export interface Trip {
   id: string;
-  title: string;
-  description: string | null;
-  start_date: string | null;
-  end_date: string | null;
   created_at: string;
   updated_at: string;
+  title: string;
+  description?: string;
+  location?: string;
+  budget?: number;
+  travel_partner?: string;
+  start_date?: string;
+  end_date?: string;
   user_id: string;
-  shared_with_user_id: string | null;
-};
+  shared_with_user_id?: string;
+}
 
 export type TripItem = {
   id: string;

@@ -8,6 +8,7 @@ import type { Trip, TripItem } from "@/types";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { TripRecommendations } from "@/components/TripRecommendations";
 
 interface PageProps {
   params: Promise<{
@@ -221,6 +222,39 @@ export default function TripDetailsPage({ params }: PageProps) {
                   </p>
                 </div>
 
+                {trip.location && (
+                  <div>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      Location
+                    </span>
+                    <p className="mt-1 text-gray-900 dark:text-white">
+                      {trip.location}
+                    </p>
+                  </div>
+                )}
+
+                {trip.budget && (
+                  <div>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      Budget
+                    </span>
+                    <p className="mt-1 text-gray-900 dark:text-white">
+                      ${trip.budget.toFixed(2)}
+                    </p>
+                  </div>
+                )}
+
+                {trip.travel_partner && (
+                  <div>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      Travel Partner
+                    </span>
+                    <p className="mt-1 text-gray-900 dark:text-white">
+                      {trip.travel_partner}
+                    </p>
+                  </div>
+                )}
+
                 {(trip.start_date || trip.end_date) && (
                   <div>
                     <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -309,6 +343,11 @@ export default function TripDetailsPage({ params }: PageProps) {
               )}
             </CardContent>
           </Card>
+
+          {/* Trip Recommendations */}
+          <div className="mt-8">
+            <TripRecommendations trip={trip} />
+          </div>
         </div>
       </div>
     </div>

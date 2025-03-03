@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, use } from "react";
-import { useRouter } from "next/navigation";
+import { useState, use, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 import type { TripItem } from "@/types";
@@ -16,16 +16,50 @@ interface PageProps {
 export default function NewTripItem({ params }: PageProps) {
   const { id: tripId } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+
+  // Get URL parameters
+  const typeParam = searchParams.get("type");
+  const validType =
+    typeParam === "activity" ||
+    typeParam === "accommodation" ||
+    typeParam === "transportation"
+      ? typeParam
+      : "activity";
+
   const [formData, setFormData] = useState<Partial<TripItem>>({
-    title: "",
-    description: "",
-    type: "activity",
-    location: "",
+    title: searchParams.get("title") || "",
+    description: searchParams.get("description") || "",
+    type: validType,
+    location: searchParams.get("location") || "",
     start_datetime: "",
     end_datetime: "",
   });
+
+  // Update form data when URL parameters change
+  useEffect(() => {
+    const title = searchParams.get("title");
+    const description = searchParams.get("description");
+    const typeParam = searchParams.get("type");
+
+    console.log("URL Params changed:", { title, description, typeParam });
+
+    const validType =
+      typeParam === "activity" ||
+      typeParam === "accommodation" ||
+      typeParam === "transportation"
+        ? typeParam
+        : "activity";
+
+    setFormData((prev) => ({
+      ...prev,
+      title: title || "",
+      description: description || "",
+      type: validType,
+    }));
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,7 +220,7 @@ export default function NewTripItem({ params }: PageProps) {
                   htmlFor="start_datetime"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
-                  Start Date & Time
+                  Start Date & Time (Optional)
                 </label>
                 <input
                   type="datetime-local"
@@ -203,7 +237,7 @@ export default function NewTripItem({ params }: PageProps) {
                   htmlFor="end_datetime"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
-                  End Date & Time
+                  End Date & Time (Optional)
                 </label>
                 <input
                   type="datetime-local"
