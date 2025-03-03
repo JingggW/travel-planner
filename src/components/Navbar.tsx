@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { AuthError } from "@supabase/supabase-js";
+import { Button } from "@/components/ui/button";
 
 export default function Navbar() {
   const { user, signIn, signUp, signOut } = useAuth();
@@ -62,34 +63,20 @@ export default function Navbar() {
           <div className="flex items-center space-x-4">
             {user ? (
               <>
-                <Link
-                  href="/trips"
-                  className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  My Trips
-                </Link>
-                <Link
-                  href="/trips/new"
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  Create Trip
-                </Link>
-                <button
-                  onClick={() => signOut()}
-                  className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium"
-                >
+                <Button variant="ghost" asChild>
+                  <Link href="/trips">My Trips</Link>
+                </Button>
+                <Button asChild>
+                  <Link href="/trips/new">Create Trip</Link>
+                </Button>
+                <Button variant="ghost" onClick={() => signOut()}>
                   Sign Out
-                </button>
+                </Button>
               </>
             ) : (
               <div className="relative">
                 {!showAuthForm ? (
-                  <button
-                    onClick={() => setShowAuthForm(true)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium"
-                  >
-                    Sign In
-                  </button>
+                  <Button onClick={() => setShowAuthForm(true)}>Sign In</Button>
                 ) : (
                   <>
                     <div
@@ -135,24 +122,21 @@ export default function Navbar() {
                           />
                         </div>
                         <div className="flex items-center justify-between">
-                          <button
+                          <Button
                             type="button"
+                            variant="link"
                             onClick={() => {
                               setIsSigningUp(!isSigningUp);
                               setError(null);
                             }}
-                            className="text-sm text-blue-500 hover:text-blue-600"
                           >
                             {isSigningUp
                               ? "Already have an account?"
                               : "Need an account?"}
-                          </button>
-                          <button
-                            type="submit"
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium"
-                          >
+                          </Button>
+                          <Button type="submit">
                             {isSigningUp ? "Sign Up" : "Sign In"}
-                          </button>
+                          </Button>
                         </div>
                       </form>
                     </div>

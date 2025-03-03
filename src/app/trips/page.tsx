@@ -41,9 +41,11 @@ export default function TripsPage() {
 
   if (!user) {
     return (
-      <div className="text-center py-12">
-        <p className="text-lg text-gray-600 dark:text-gray-300">
-          Please sign in to view your trips.
+      <div className="empty-state">
+        <div className="empty-state-icon">🔒</div>
+        <h3 className="empty-state-title">Please sign in to view your trips</h3>
+        <p className="empty-state-desc">
+          Sign in to start planning your adventures
         </p>
       </div>
     );
@@ -51,8 +53,8 @@ export default function TripsPage() {
 
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent"></div>
+      <div className="empty-state">
+        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
         <p className="mt-2 text-gray-600 dark:text-gray-300">
           Loading trips...
         </p>
@@ -63,54 +65,67 @@ export default function TripsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">My Trips</h1>
-        <Link
-          href="/trips/new"
-          className="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-        >
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          My Trips
+        </h1>
+        <Link href="/trips/new" className="btn btn-primary">
           Create New Trip
         </Link>
       </div>
 
       {trips.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
-          <p className="text-lg text-gray-600 dark:text-gray-300 mb-4">
-            You haven&apos;t created any trips yet.
+        <div className="empty-state">
+          <div className="empty-state-icon">✈️</div>
+          <h3 className="empty-state-title">No trips planned yet</h3>
+          <p className="empty-state-desc">
+            Start planning your next adventure!
           </p>
-          <Link
-            href="/trips/new"
-            className="text-blue-500 hover:text-blue-600 underline"
-          >
+          <Link href="/trips/new" className="btn btn-primary">
             Create your first trip
           </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {trips.map((trip) => (
-            <div
-              key={trip.id}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
-            >
+            <div key={trip.id} className="card">
               <div className="p-6">
-                <h3 className="text-xl font-semibold mb-2">{trip.title}</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-2">
-                  {trip.description || "No description"}
-                </p>
-                <div className="flex flex-col space-y-2 text-sm text-gray-500 dark:text-gray-400">
-                  {trip.start_date && (
-                    <p>
-                      Start: {new Date(trip.start_date).toLocaleDateString()}
+                <div className="flex items-start gap-4">
+                  <div className="trip-item-icon">✈️</div>
+                  <div className="flex-1">
+                    <h3 className="trip-item-title">{trip.title}</h3>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2 mb-3">
+                      {trip.description || "No description"}
                     </p>
-                  )}
-                  {trip.end_date && (
-                    <p>End: {new Date(trip.end_date).toLocaleDateString()}</p>
-                  )}
+                    {(trip.start_date || trip.end_date) && (
+                      <div className="date-range">
+                        {trip.start_date && (
+                          <div className="date-item">
+                            <div className="date-item-label">From</div>
+                            <div className="date-item-value">
+                              {new Date(trip.start_date).toLocaleDateString()}
+                            </div>
+                          </div>
+                        )}
+                        {trip.start_date && trip.end_date && (
+                          <div className="date-divider" />
+                        )}
+                        {trip.end_date && (
+                          <div className="date-item">
+                            <div className="date-item-label">To</div>
+                            <div className="date-item-value">
+                              {new Date(trip.end_date).toLocaleDateString()}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700">
+              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
                 <button
                   onClick={() => router.push(`/trips/${trip.id}`)}
-                  className="w-full text-center text-blue-500 hover:text-blue-600"
+                  className="w-full text-center text-primary hover:text-secondary font-medium"
                 >
                   View Details
                 </button>
