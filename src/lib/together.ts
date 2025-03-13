@@ -223,3 +223,127 @@ Remember:
     throw error;
   }
 }
+
+async function generateRecommendation(prompt: string) {
+  if (!TOGETHER_API_KEY) {
+    throw new Error("Together AI API key is not configured");
+  }
+
+  const response = await together.chat.completions.create({
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a knowledgeable travel expert who provides specific, practical recommendations. Format your response as a list with each item starting with '- ' followed by the name and description separated by ': '. Keep descriptions informative but concise.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    model: "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
+    temperature: 0.7,
+    max_tokens: 800,
+  });
+
+  if (!response.choices?.[0]?.message?.content) {
+    throw new Error("No recommendations generated");
+  }
+
+  return response.choices[0].message.content;
+}
+
+export async function generateActivityRecommendations(trip: Trip) {
+  const prompt = `Please suggest 3 must-do activities or attractions for a trip to ${
+    trip.location || "the destination"
+  }.
+${
+  trip.start_date
+    ? `Trip starts on: ${new Date(trip.start_date).toLocaleDateString()}`
+    : ""
+}
+${
+  trip.end_date
+    ? `Trip ends on: ${new Date(trip.end_date).toLocaleDateString()}`
+    : ""
+}
+
+Focus on:
+- Popular tourist attractions
+- Local cultural experiences
+- Unique or seasonal activities
+
+For each activity, provide:
+- Name of the activity
+- Brief description including location, estimated duration, and any special notes
+- Why it's worth visiting
+
+Format each recommendation as:
+- [Activity Name]: [Description]`;
+
+  return generateRecommendation(prompt);
+}
+
+export async function generateHotelRecommendations(trip: Trip) {
+  const prompt = `Please suggest 3 excellent accommodation options for a stay in ${
+    trip.location || "the destination"
+  }.
+${
+  trip.start_date
+    ? `Check-in: ${new Date(trip.start_date).toLocaleDateString()}`
+    : ""
+}
+${
+  trip.end_date
+    ? `Check-out: ${new Date(trip.end_date).toLocaleDateString()}`
+    : ""
+}
+
+Focus on:
+- Location and accessibility
+- Quality and amenities
+- Value for money
+- Guest reviews and ratings
+
+For each hotel, provide:
+- Name of the hotel
+- Brief description including location, key amenities, and room types
+- What makes it special
+
+Format each recommendation as:
+- [Hotel Name]: [Description]`;
+
+  return generateRecommendation(prompt);
+}
+
+export async function generateFoodRecommendations(trip: Trip) {
+  const prompt = `Please suggest 3 must-try dining experiences in ${
+    trip.location || "the destination"
+  }.
+${
+  trip.start_date
+    ? `Visit period starts: ${new Date(trip.start_date).toLocaleDateString()}`
+    : ""
+}
+${
+  trip.end_date
+    ? `Visit period ends: ${new Date(trip.end_date).toLocaleDateString()}`
+    : ""
+}
+
+Focus on:
+- Local specialties and cuisine
+- Popular restaurants
+- Unique dining experiences
+- Food markets or street food
+
+For each recommendation, provide:
+- Name of the restaurant or dining spot
+- Brief description including cuisine type, location, and price range
+- What makes it special
+
+Format each recommendation as:
+- [Restaurant/Place Name]: [Description]`;
+
+  return generateRecommendation(prompt);
+}
