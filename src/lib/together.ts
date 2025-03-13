@@ -88,3 +88,138 @@ Focus on providing specific, practical suggestions that would enhance the trip e
     throw error;
   }
 }
+
+export interface ItineraryActivity {
+  time: string;
+  activity: string;
+  location: string;
+  description: string;
+  estimatedCost?: string;
+  reservationNeeded: boolean;
+}
+
+export interface DayItinerary {
+  date: string;
+  activities: ItineraryActivity[];
+}
+
+export interface GeneratedItinerary {
+  destination: string;
+  startDate: string;
+  endDate: string;
+  content: string; // Raw LLM response
+}
+
+export async function generateDetailedItinerary(
+  trip: Trip
+): Promise<GeneratedItinerary> {
+  if (!TOGETHER_API_KEY) {
+    throw new Error("Together AI API key is not configured");
+  }
+
+  if (!trip.location || !trip.start_date || !trip.end_date) {
+    throw new Error("Trip must have location, start date, and end date");
+  }
+
+  console.log("Generating itinerary for:", {
+    location: trip.location,
+    startDate: trip.start_date,
+    endDate: trip.end_date,
+  });
+
+  const prompt = `You MUST return your response in the following JSON format ONLY. Do not include any other text or explanations outside the JSON structure:
+
+{
+  "destination": "${trip.location}",
+  "startDate": "${new Date(trip.start_date).toLocaleDateString()}",
+  "endDate": "${new Date(trip.end_date).toLocaleDateString()}",
+  "days": [
+    {
+      "date": "YYYY-MM-DD",
+      "activities": [
+        {
+          "time": "HH:MM AM/PM - HH:MM AM/PM",
+          "activity": "Name of the activity",
+          "location": "Full address or location name",
+          "description": "Detailed description of the activity",
+          "estimatedCost": "Cost in local currency or 'Free'",
+          "reservationNeeded": true/false
+        }
+      ]
+    }
+  ]
+}
+
+Create a detailed day-by-day itinerary for this trip:
+Title: ${trip.title}
+${trip.description ? `Description: ${trip.description}` : ""}
+Location: ${trip.location}
+Start Date: ${new Date(trip.start_date).toLocaleDateString()}
+End Date: ${new Date(trip.end_date).toLocaleDateString()}
+
+For each day's activities include:
+1. A mix of popular attractions, local experiences, and dining options
+2. Realistic timing considering travel distances
+3. Specific locations with full addresses
+4. Accurate cost estimates in local currency
+5. Clear indication if reservations are needed
+
+Remember:
+- Use the exact JSON format shown above
+- Include breakfast, lunch, and dinner recommendations
+- Add transportation details between locations when needed
+- Keep timings realistic with travel time between places
+- Include specific addresses and location details`;
+
+  try {
+    const response = await together.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a travel itinerary API that MUST return responses in valid JSON format only. Do not include any explanatory text or markdown formatting. Your entire response must be parseable as JSON. Format dates as YYYY-MM-DD and times as HH:MM AM/PM.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      model: "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
+      temperature: 0.7,
+      max_tokens: 3000,
+    });
+
+    if (!response.choices?.[0]?.message?.content) {
+      throw new Error("No itinerary generated");
+    }
+
+    console.log("LLM Response:", response.choices[0].message.content);
+
+    try {
+      // Try to parse the response as JSON
+      const jsonResponse = JSON.parse(response.choices[0].message.content);
+      return {
+        destination: jsonResponse.destination || trip.location,
+        startDate:
+          jsonResponse.startDate ||
+          new Date(trip.start_date).toISOString().split("T")[0],
+        endDate:
+          jsonResponse.endDate ||
+          new Date(trip.end_date).toISOString().split("T")[0],
+        content: JSON.stringify(jsonResponse, null, 2), // Pretty print the JSON
+      };
+    } catch (parseError) {
+      console.error("Failed to parse LLM response as JSON:", parseError);
+      // Fall back to raw response if JSON parsing fails
+      return {
+        destination: trip.location,
+        startDate: new Date(trip.start_date).toISOString().split("T")[0],
+        endDate: new Date(trip.end_date).toISOString().split("T")[0],
+        content: response.choices[0].message.content,
+      };
+    }
+  } catch (error) {
+    console.error("Error generating detailed itinerary:", error);
+    throw error;
+  }
+}

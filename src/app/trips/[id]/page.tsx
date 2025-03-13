@@ -4,11 +4,12 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-import type { Trip, TripItem } from "@/types";
+import type { Trip, TripItem as TripItemType } from "@/types";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TripRecommendations } from "@/components/TripRecommendations";
+import TripItem from "@/components/TripItem";
 
 interface PageProps {
   params: Promise<{
@@ -21,7 +22,7 @@ export default function TripDetailsPage({ params }: PageProps) {
   const router = useRouter();
   const { user } = useAuth();
   const [trip, setTrip] = useState<Trip | null>(null);
-  const [tripItems, setTripItems] = useState<TripItem[]>([]);
+  const [tripItems, setTripItems] = useState<TripItemType[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -67,6 +68,24 @@ export default function TripDetailsPage({ params }: PageProps) {
     fetchTripAndItems();
   }, [user, tripId, router]);
 
+  const handleItemDelete = () => {
+    // Refresh trip items after deletion
+    if (!user) return;
+
+    supabase
+      .from("trip_items")
+      .select("*")
+      .eq("trip_id", tripId)
+      .order("start_datetime", { ascending: true })
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Error fetching trip items:", error);
+          return;
+        }
+        setTripItems(data || []);
+      });
+  };
+
   if (!user) {
     return (
       <div className="empty-state">
@@ -106,62 +125,6 @@ export default function TripDetailsPage({ params }: PageProps) {
       </div>
     );
   }
-
-  const TripItem = ({ item }: { item: TripItem }) => {
-    const getIcon = (type: string) => {
-      switch (type) {
-        case "accommodation":
-          return "🏨";
-        case "transportation":
-          return "✈️";
-        case "activity":
-          return "📍";
-        default:
-          return "📌";
-      }
-    };
-
-    const formatDateTime = (datetime: string) => {
-      if (!datetime) return "";
-      const date = new Date(datetime);
-      return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })}`;
-    };
-
-    return (
-      <div className="trip-item hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-        <div className={`trip-item-icon ${item.type}`}>
-          {getIcon(item.type)}
-        </div>
-        <div className="trip-item-content">
-          <h3 className="trip-item-title">{item.title}</h3>
-          <div className="trip-item-meta">
-            {item.location && (
-              <>
-                <span>{item.location}</span>
-                <span>•</span>
-              </>
-            )}
-            {item.start_datetime && (
-              <span>{formatDateTime(item.start_datetime)}</span>
-            )}
-          </div>
-          {item.description && (
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              {item.description}
-            </p>
-          )}
-          <div className="trip-item-actions">
-            <span className={`tag ${item.type}`}>
-              {item.type.charAt(0).toUpperCase() + item.type.slice(1)}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -337,7 +300,11 @@ export default function TripDetailsPage({ params }: PageProps) {
               ) : (
                 <div className="space-y-4">
                   {tripItems.map((item) => (
-                    <TripItem key={item.id} item={item} />
+                    <TripItem
+                      key={item.id}
+                      item={item}
+                      onDelete={handleItemDelete}
+                    />
                   ))}
                 </div>
               )}
