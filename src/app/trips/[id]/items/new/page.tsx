@@ -25,7 +25,8 @@ export default function NewTripItem({ params }: PageProps) {
   const validType =
     typeParam === "activity" ||
     typeParam === "accommodation" ||
-    typeParam === "transportation"
+    typeParam === "transportation" ||
+    typeParam === "food"
       ? typeParam
       : "activity";
 
@@ -49,7 +50,8 @@ export default function NewTripItem({ params }: PageProps) {
     const validType =
       typeParam === "activity" ||
       typeParam === "accommodation" ||
-      typeParam === "transportation"
+      typeParam === "transportation" ||
+      typeParam === "food"
         ? typeParam
         : "activity";
 
@@ -161,6 +163,7 @@ export default function NewTripItem({ params }: PageProps) {
                 <option value="activity">Activity</option>
                 <option value="accommodation">Accommodation</option>
                 <option value="transportation">Transportation</option>
+                <option value="food">Food</option>
               </select>
             </div>
 
@@ -184,6 +187,8 @@ export default function NewTripItem({ params }: PageProps) {
                     ? "Visit Eiffel Tower"
                     : formData.type === "accommodation"
                     ? "Hotel de Paris"
+                    : formData.type === "food"
+                    ? "French Pastry"
                     : "Flight to Paris"
                 }`}
               />

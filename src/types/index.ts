@@ -16,7 +16,7 @@ export interface Trip {
 export type TripItem = {
   id: string;
   trip_id: string;
-  type: "activity" | "accommodation" | "transportation";
+  type: "activity" | "accommodation" | "transportation" | "food";
   title: string;
   description: string | null;
   start_datetime: string | null;

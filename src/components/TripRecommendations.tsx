@@ -1,5 +1,4 @@
 import { Trip } from "@/types";
-import { Card, CardContent } from "./ui/card";
 import { Button } from "./ui/button";
 import { useState } from "react";
 import {
@@ -136,30 +135,35 @@ export function TripRecommendations({ trip }: TripRecommendationsProps) {
 
     const items = parseRecommendations(content, type);
 
+    const bgColor =
+      type === "activity"
+        ? "bg-[#FEF9E7]"
+        : type === "hotel"
+        ? "bg-[#EEF2FF]"
+        : "bg-[#F0FDF4]";
+
     return (
-      <Card className="bg-white dark:bg-gray-800 shadow-sm">
-        <CardContent className="space-y-4">
-          {items.map((item, index) => (
-            <Card key={index} className="bg-gray-50 dark:bg-gray-900">
-              <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
-                <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                  {item.description}
-                </p>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() =>
-                    handleAddToTrip(item.title, item.description, type)
-                  }
-                >
-                  Add to Trip
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        {items.map((item, index) => (
+          <div key={index} className={`${bgColor} rounded-3xl shadow-sm p-8`}>
+            <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+              {item.title}
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300 text-base leading-relaxed mb-6">
+              {item.description}
+            </p>
+            <Button
+              onClick={() =>
+                handleAddToTrip(item.title, item.description, type)
+              }
+              className="w-full bg-white hover:bg-gray-50 text-gray-900 border-2 border-gray-200 rounded-xl py-3 font-medium"
+              variant="outline"
+            >
+              Add to Trip
+            </Button>
+          </div>
+        ))}
+      </div>
     );
   };
 
@@ -170,15 +174,11 @@ export function TripRecommendations({ trip }: TripRecommendationsProps) {
         {renderButton("hotel")}
         {renderButton("food")}
       </div>
-      {(recommendations.activity ||
-        recommendations.hotel ||
-        recommendations.food) && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {renderRecommendations("activity")}
-          {renderRecommendations("hotel")}
-          {renderRecommendations("food")}
-        </div>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {recommendations.activity && renderRecommendations("activity")}
+        {recommendations.hotel && renderRecommendations("hotel")}
+        {recommendations.food && renderRecommendations("food")}
+      </div>
     </div>
   );
 }

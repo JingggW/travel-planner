@@ -58,6 +58,10 @@ body {
   @apply bg-yellow-100 text-yellow-600;
 }
 
+.trip-item-icon.food {
+  @apply bg-green-100 text-green-600;
+}
+
 .trip-item-content {
   @apply flex-1;
 }
@@ -106,6 +110,10 @@ body {
 
 .tag.activity {
   @apply bg-yellow-50 text-yellow-600;
+}
+
+.tag.food {
+  @apply bg-green-50 text-green-600;
 }
 
 /* Date Range Styles */

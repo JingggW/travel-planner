@@ -8,8 +8,7 @@ import type { Trip, TripItem as TripItemType } from "@/types";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TripRecommendations } from "@/components/TripRecommendations";
-import TripItem from "@/components/TripItem";
+import { TripItinerary } from "@/components/TripItinerary";
 
 interface PageProps {
   params: Promise<{
@@ -24,6 +23,21 @@ export default function TripDetailsPage({ params }: PageProps) {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [tripItems, setTripItems] = useState<TripItemType[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const refreshTripItems = async () => {
+    try {
+      const { data: itemsData, error: itemsError } = await supabase
+        .from("trip_items")
+        .select("*")
+        .eq("trip_id", tripId)
+        .order("start_datetime", { ascending: true });
+
+      if (itemsError) throw itemsError;
+      setTripItems(itemsData || []);
+    } catch (error) {
+      console.error("Error refreshing trip items:", error);
+    }
+  };
 
   useEffect(() => {
     if (!user) {
@@ -50,14 +64,7 @@ export default function TripDetailsPage({ params }: PageProps) {
         setTrip(tripData);
 
         // Fetch trip items
-        const { data: itemsData, error: itemsError } = await supabase
-          .from("trip_items")
-          .select("*")
-          .eq("trip_id", tripId)
-          .order("start_datetime", { ascending: true });
-
-        if (itemsError) throw itemsError;
-        setTripItems(itemsData || []);
+        await refreshTripItems();
       } catch (error) {
         console.error("Error fetching trip details:", error);
       } finally {
@@ -67,24 +74,6 @@ export default function TripDetailsPage({ params }: PageProps) {
 
     fetchTripAndItems();
   }, [user, tripId, router]);
-
-  const handleItemDelete = () => {
-    // Refresh trip items after deletion
-    if (!user) return;
-
-    supabase
-      .from("trip_items")
-      .select("*")
-      .eq("trip_id", tripId)
-      .order("start_datetime", { ascending: true })
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Error fetching trip items:", error);
-          return;
-        }
-        setTripItems(data || []);
-      });
-  };
 
   if (!user) {
     return (
@@ -292,29 +281,27 @@ export default function TripDetailsPage({ params }: PageProps) {
                     more.
                   </p>
                   <Button asChild variant="default">
-                    <Link href={`/trips/${trip.id}/items/new`}>
+                    <Link href={`/trips/${tripId}/items/new`}>
                       Add your first item
                     </Link>
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {tripItems.map((item) => (
-                    <TripItem
-                      key={item.id}
-                      item={item}
-                      onDelete={handleItemDelete}
-                    />
-                  ))}
+                <div className="space-y-8">
+                  <TripItinerary
+                    items={tripItems}
+                    tripId={tripId}
+                    trip={{
+                      location: trip.location,
+                      start_date: trip.start_date,
+                      end_date: trip.end_date,
+                    }}
+                    onDelete={refreshTripItems}
+                  />
                 </div>
               )}
             </CardContent>
           </Card>
-
-          {/* Trip Recommendations */}
-          <div className="mt-8">
-            <TripRecommendations trip={trip} />
-          </div>
         </div>
       </div>
     </div>
