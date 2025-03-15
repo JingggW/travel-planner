@@ -69,11 +69,19 @@ export default function NewTripItem({ params }: PageProps) {
 
     setLoading(true);
     try {
+      // Convert datetime strings to local timezone ISO strings
+      const start = formData.start_datetime
+        ? new Date(formData.start_datetime).toISOString()
+        : undefined;
+      const end = formData.end_datetime
+        ? new Date(formData.end_datetime).toISOString()
+        : undefined;
+
       const itemData: Partial<TripItem> = {
         ...formData,
         trip_id: tripId,
-        start_datetime: formData.start_datetime || undefined,
-        end_datetime: formData.end_datetime || undefined,
+        start_datetime: start,
+        end_datetime: end,
       };
 
       console.log("Trip item data to be sent to Supabase:", itemData);
@@ -103,6 +111,9 @@ export default function NewTripItem({ params }: PageProps) {
     >
   ) => {
     const { name, value } = e.target;
+
+    // For datetime inputs, store the value directly from the input
+    // The input's value is already in local timezone
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 

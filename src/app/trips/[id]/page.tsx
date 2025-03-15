@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
@@ -24,7 +24,7 @@ export default function TripDetailsPage({ params }: PageProps) {
   const [tripItems, setTripItems] = useState<TripItemType[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const refreshTripItems = async () => {
+  const refreshTripItems = useCallback(async () => {
     try {
       const { data: itemsData, error: itemsError } = await supabase
         .from("trip_items")
@@ -37,7 +37,7 @@ export default function TripDetailsPage({ params }: PageProps) {
     } catch (error) {
       console.error("Error refreshing trip items:", error);
     }
-  };
+  }, [tripId]);
 
   useEffect(() => {
     if (!user) {
@@ -73,7 +73,7 @@ export default function TripDetailsPage({ params }: PageProps) {
     }
 
     fetchTripAndItems();
-  }, [user, tripId, router]);
+  }, [user, tripId, router, refreshTripItems]);
 
   if (!user) {
     return (

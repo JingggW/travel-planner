@@ -14,6 +14,7 @@ interface TripItineraryProps {
     start_date?: string;
     end_date?: string;
   };
+  onDelete?: () => void;
 }
 
 export function TripItinerary({
@@ -21,6 +22,7 @@ export function TripItinerary({
   tripId,
   generatedItems = [],
   trip,
+  onDelete,
 }: TripItineraryProps) {
   // If no items and no generated items, show empty state
   if (!items?.length && !generatedItems?.length) {
@@ -58,6 +60,7 @@ export function TripItinerary({
         tripId={tripId}
         generatedItems={generatedItems}
         trip={trip}
+        onDelete={onDelete}
       />
     );
   }
@@ -105,6 +108,7 @@ export function TripItinerary({
           tripId={tripId}
           generatedItems={generatedItems}
           trip={trip}
+          onDelete={onDelete}
         />
       )}
 
@@ -117,6 +121,7 @@ export function TripItinerary({
           tripId={tripId}
           generatedItems={generatedItems}
           trip={trip}
+          onDelete={onDelete}
         />
       ))}
     </div>
